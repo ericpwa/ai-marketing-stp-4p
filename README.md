@@ -1,16 +1,27 @@
 # AI 市場定位分析師 (行銷 STP & 4P) Web App
 
 > **專為行銷人、產品經理、創業家與教學課堂打造的智能定位決策工作台**  
-> 以 [Persona Designer](https://ai-persona-designer-v2.streamlit.app/) 為基準母版架構，採用 **GitHub + Streamlit + Google Gemini API Key (BYOK 0成本防護)** 模式全面實作。
+> 以 [Persona Designer](https://ai-persona-designer-v2.streamlit.app/) 為基準母版架構，採用 **GitHub + Streamlit + Google Gemini API Key (伺服器端 BYOK)** 模式全面實作。
 
 ---
 
 ## 🌟 核心特色與技術亮點
 
-### 1. 0 成本 BYOK (Bring Your Own Key) 防護
-- **完全零成本消耗**：發布給第三人或學員使用時，使用者於前端輸入個人 Google Gemini API Key，直接由瀏覽器會話端與 Google 官方端點通訊。
-- **金鑰隱私安全**：API Key 絕不存入硬編碼、資料庫或任何第三方中介伺服器，頁面重整或關閉即消滅。
-- **免費配額支持**：支援 Google AI Studio 免費個人額度即可順暢運行，小白用戶完全無須付費。
+### 1. BYOK (Bring Your Own Key)：使用者提供金鑰，伺服器代為呼叫
+- 使用者輸入金鑰後，金鑰經 Streamlit 連線傳至 App 伺服器，保存在 `st.session_state.api_key`，由 Python `google.genai.Client` 呼叫 Google Gemini API。
+- 這不是純前端或 Browser-only BYOK；App 主機與代管環境在信任範圍內。
+- 原始碼未見刻意將金鑰欄位寫入資料庫或提案下載，但未驗證代管日誌、SDK 除錯、代理、備份或記憶體回收，不能保證零留存或關頁即抹除。
+- API 呼叫使用該金鑰所屬專案的配額及計費；BYOK 不保證零費用。
+
+
+### 使用前的安全與隱私告知
+
+- 金鑰會送至本 App 的 Streamlit 伺服器，保存在該會話的伺服器端記憶體，再由 Python 呼叫 Google；不是 Browser-only BYOK。請只在信任的部署輸入專用、受限制的 Key，不要貼進提案、人物姓名或上傳檔案。
+- 輸入或更換金鑰會自動驗證；驗證與模型備援可能產生多次 API 呼叫，消耗您的配額或費用。免費額度與資料使用條款依 Google 當時政策及帳戶而定。
+- 程式未主動將金鑰欄位寫入提案匯出；這不保證代管平台、SDK、代理或日誌系統不留存。清空金鑰欄位可移除 App 的目前金鑰值，但不保證記憶體副本立即抹除；疑似外洩請至 Google 撤銷金鑰。
+- 密碼輸入框只遮蔽畫面，不代表端對端加密或主機管理者無法存取。只使用信任的 HTTPS 部署；本機啟動請明確綁定 `127.0.0.1`。
+- 提案文字、上傳資料與模型回覆可能包含個資或商業機密；請先去識別化。貼進一般文字欄位的機密仍可能送往模型或進入下載檔案，匯出功能不是敏感資料過濾器。
+- 詳見 [BYOK 安全 QA、資料流與待驗證項目](BYOK_SECURITY.md)。
 
 ### 2. 多模型動態自動備援 (Failover & Fallback)
 - **多模型支援清單**：優先支援 `gemini-2.5-flash`、`gemini-2.0-flash`、`gemini-1.5-flash`、`gemini-1.5-pro`、`gemini-flash`。
@@ -58,7 +69,7 @@ cd /Users/wenanpan/.gemini/antigravity/scratch/marketing-stp-4p-app
 pip install -r requirements.txt
 
 # 3. 啟動 Streamlit 應用
-streamlit run app.py
+streamlit run app.py --server.address 127.0.0.1
 ```
 
 ### GitHub + Streamlit Cloud 免費一鍵部署步驟
