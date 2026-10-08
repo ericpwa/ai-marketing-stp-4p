@@ -96,7 +96,7 @@ def get_gemini_client(api_key):
         clean_key = api_key.strip().strip("'").strip('"')
         return genai.Client(api_key=clean_key)
     except Exception as e:
-        st.session_state.api_error = f"載入 Google GenAI SDK 失敗: {str(e)}"
+        st.session_state.api_error = "無法初始化 Google GenAI SDK，請確認金鑰與執行環境。原始錯誤內容不顯示。"
         return None
 
 def validate_api_key(api_key):
@@ -144,7 +144,7 @@ def validate_api_key(api_key):
     elif "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
         st.session_state.api_error = "此 API Key 配額已滿或觸發頻率限制，請稍候重試。"
     else:
-        st.session_state.api_error = f"驗證失敗: {err_str}"
+        st.session_state.api_error = "金鑰驗證失敗，請檢查權限、模型可用性與網路連線。原始錯誤內容不顯示。"
     return False
 
 def generate_content_with_fallback(prompt, system_instruction=None, json_mode=False):
@@ -187,7 +187,7 @@ def generate_content_with_fallback(prompt, system_instruction=None, json_mode=Fa
             last_error = e
             continue
 
-    raise last_error if last_error else Exception("所有備援模型均無法連線")
+    raise RuntimeError("所有備援模型均無法連線，請檢查權限、配額與網路。原始錯誤內容不顯示。") from None
 
 # ==========================================
 # 頂部 Header 與 標題
@@ -196,15 +196,19 @@ render_html("<h1 class='main-title'>🎯 AI 市場定位分析師 (STP & 4P)</h1
 render_html("<p class='sub-title'>專為行銷人、產品經理與創業團隊打造的智能定位工作台。從目標人物誌出發，科學推演 STP 市場定位與 4P 行銷組合！</p>")
 
 # ==========================================
-# 側邊欄：BYOK 0 成本防護與控制面板
+# 側邊欄：伺服器端 BYOK 與控制面板
 # ==========================================
 with st.sidebar:
     st.markdown("### 🔑 金鑰與防護 (BYOK)")
+    st.caption("金鑰會送至本 App 的 Streamlit 伺服器，保存在該會話的伺服器端記憶體，再由 Python 呼叫 Google；不是 Browser-only BYOK。請只在信任的部署輸入專用、受限制的 Key，不要貼進提案、人物姓名或上傳檔案。")
+    st.caption("輸入或更換金鑰會自動驗證；驗證與模型備援可能產生多次 API 呼叫，消耗您的配額或費用。免費額度與資料使用條款依 Google 當時政策及帳戶而定。")
+    with st.expander("金鑰與資料使用須知"):
+        st.markdown("程式未主動將金鑰欄位寫入提案匯出；這不保證代管平台、SDK、代理或日誌系統不留存。清空金鑰欄位可移除 App 的目前金鑰值，但不保證記憶體副本立即抹除；疑似外洩請至 Google 撤銷金鑰。 Persona 姓名會用作 DiceBear 頭像網址的 seed，並載入 Google Fonts；請使用化名。")
     api_key_input = st.text_input(
         "輸入 Google Gemini API Key",
         value=st.session_state.api_key,
         type="password",
-        help="0 成本防護：金鑰僅保存在當前瀏覽器會話中，直接向 Google API 請求，絕不留存於第三方伺服器。"
+        help="金鑰會送至本 App 的 Streamlit 伺服器，保存在該會話的伺服器端記憶體，再由 Python 呼叫 Google；不是 Browser-only BYOK。請只在信任的部署輸入專用、受限制的 Key，不要貼進提案、人物姓名或上傳檔案。"
     )
 
     clean_input = api_key_input.strip().strip("'").strip('"')
@@ -240,7 +244,7 @@ with st.sidebar:
         if st.session_state.api_error:
             render_html(f"<div style='background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:8px; padding:10px; font-size:0.82rem; color:#fca5a5; margin-bottom:12px;'><b>原因：</b><br>{st.session_state.api_error}</div>")
 
-    with st.expander("❓ 如何取得免費的 Gemini API Key？"):
+    with st.expander("❓ 如何取得 Gemini API Key 與確認費用？"):
         st.markdown(
             """
             1. 前往 👉 [Google AI Studio](https://aistudio.google.com/)。
@@ -248,7 +252,7 @@ with st.sidebar:
             3. 點擊 **"Get API Key"** -> **"Create API Key"**。
             4. 複製金鑰並貼於上方輸入框。
             
-            *提示：個人免費帳號即可獲得高額免費推論配額，完全無需綁定信用卡！*
+            *提示：免費額度、可用模型與費率依 Google 帳戶及最新政策而定；請先確認配額、預算與資料使用條款。*
             """
         )
 
@@ -301,7 +305,7 @@ with st.sidebar:
             st.success("🎉 提案快照還原成功！")
             st.rerun()
         except Exception as e:
-            st.error(f"還原失敗：{str(e)}")
+            st.error("還原失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
 # ==========================================
 # 門禁檢查：未輸入有效金鑰時的主畫面提示
@@ -315,12 +319,12 @@ if not st.session_state.api_key_valid:
                 本工具支援行銷實戰與教學應用，具備 <b>目標人物誌 (Persona) ➔ 市場區隔 (S) ➔ 目標市場評估 (T) ➔ 市場定位與價值主張 (P) ➔ 行銷 4P 組合 ➔ BMC 商業模式與驗證行動</b> 完整閉環推演流程。
             </p>
             <div style="background:rgba(139,92,246,0.12); border-left:4px solid #8b5cf6; border-radius:10px; padding:16px; margin:20px 0;">
-                <b style="color:#c084fc; font-size:1.05rem;">🔒 0 成本 BYOK (Bring Your Own Key) 防護保障：</b><br>
+                <b style="color:#c084fc; font-size:1.05rem;">🔑 伺服器端 BYOK (Bring Your Own Key) 使用須知：</b><br>
                 <span style="color:#cbd5e1; font-size:0.95rem;">
-                為了讓工具可完全自由發布給學員與同仁使用，我們採用 <b>BYOK 模式</b>。您的 API Key 僅會儲存在個人瀏覽器當前 Session 中，直接呼叫 Google Gemini 官方服務，<b>完全不會消耗開發者個人額度或費用</b>，安全無虞！
+                金鑰會送至本 App 的 Streamlit 伺服器，保存在該會話的伺服器端記憶體，再由 Python 呼叫 Google；不是 Browser-only BYOK。請只在信任的部署輸入專用、受限制的 Key，不要貼進提案、人物姓名或上傳檔案。 輸入或更換金鑰會自動驗證；驗證與模型備援可能產生多次 API 呼叫，消耗您的配額或費用。免費額度與資料使用條款依 Google 當時政策及帳戶而定。
                 </span>
             </div>
-            <p style="color:#94a3b8;">👉 請至<b>左側選單</b>輸入您的 Google Gemini API Key。若無金鑰，可展開左側教學 1 分鐘免費申請。</p>
+            <p style="color:#94a3b8;">👉 請至<b>左側選單</b>輸入您的 Google Gemini API Key。若無金鑰，可展開左側說明申請並確認配額與費用。</p>
         </div>
         """
     )
@@ -390,7 +394,7 @@ if st.session_state.step == 1:
                             st.session_state.persona = persona
                             st.rerun()
                         except Exception as e:
-                            st.error(f"潤飾失敗：{str(e)}")
+                            st.error("潤飾失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
         st.markdown("#### 🎯 核心需求與現行替代作法")
         needs_str = st.text_area(
@@ -508,7 +512,7 @@ if st.session_state.step == 1:
                             st.success("🎉 Persona 提煉完成！已自動套用至上方表單！")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"提煉失敗：{str(e)}")
+                            st.error("提煉失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
     col_btn_prev, col_btn_next = st.columns([1, 1])
     with col_btn_next:
@@ -577,7 +581,7 @@ elif st.session_state.step == 2:
                         st.success("🎉 3 組候選客群生成成功！請在下方進行人工檢視與微調。")
                         st.rerun()
                 except Exception as e:
-                    st.error(f"生成客群失敗：{str(e)}")
+                    st.error("生成客群失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
     # 渲染 S1, S2, S3 卡片與編輯器
     segments = st.session_state.segments
@@ -872,7 +876,7 @@ elif st.session_state.step == 4:
                     st.success("🎉 定位草稿與替代方案生成成功！")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"生成定位失敗：{str(e)}")
+                    st.error("生成定位失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
     col_p1, col_p2 = st.columns([1, 1])
     with col_p1:
@@ -1004,7 +1008,7 @@ elif st.session_state.step == 5:
                     st.success("🎉 行銷 4P 組合推演成功！請在下方檢視與微調。")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"4P 推演失敗：{str(e)}")
+                    st.error("4P 推演失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
     # 4P 編輯卡片
     col_p_prod, col_p_price = st.columns(2)
@@ -1135,7 +1139,7 @@ elif st.session_state.step == 6:
                         st.success("🎉 3 項驗證行動推演成功！")
                         st.rerun()
                 except Exception as e:
-                    st.error(f"推演驗證失敗：{str(e)}")
+                    st.error("推演驗證失敗。請檢查輸入資料、金鑰權限與配額後重試；原始錯誤內容不顯示。")
 
     actions = st.session_state.verification_actions
     for idx, act in enumerate(actions):

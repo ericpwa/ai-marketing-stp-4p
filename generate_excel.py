@@ -166,7 +166,7 @@ def build_acceptance_excel(filepath):
         ["架構母版對照", "https://ai-persona-designer-v2.streamlit.app/ (人物誌設計師 Persona Designer)"],
         ["交付成果 1", "Web App 完整原始碼與環境設定 (app.py, style.css, sample_data.py, requirements.txt, README.md)"],
         ["交付成果 2", "驗收修改專用表格 (本 Excel 檔案，包含所有功能點、BR 規則、AC 測試情境與反饋欄位)"],
-        ["0 成本 BYOK 防護機制", "使用者輸入個人 Google Gemini API Key，直接由瀏覽器會話端與 Google 通訊，完全零成本消耗使用者額度"],
+        ["伺服器端 BYOK 與費用邊界", "金鑰經 Streamlit 伺服器會話記憶體，由 Python 呼叫 Google；消耗使用者專案配額或費用，非 Browser-only BYOK"],
         ["多模型動態自動備援", "支援 gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash / gemini-1.5-pro / gemini-flash 等模型自動切換"],
         ["極致 UI/UX 特色", "7 步驟導航條 (Wizard)、Glassmorphism 科技感卡片、DiceBear Lorelei 插畫大頭貼、AI 一鍵潤飾/推演、一鍵載入示範案例"],
         ["驗收與修改指引", "請於『功能驗收與修改意見』工作表中的『使用者驗收意見與修改需求』欄位填寫反饋，上傳後即依此優化 Web App！"],
@@ -379,12 +379,12 @@ def build_acceptance_excel(filepath):
 
         # 核心技術防護：BYOK 0 成本
         (
-            "SEC-01", "BYOK 安全防護", "0 成本防護", "個人 API 金鑰安全隔離", "使用者需求",
-            "Given 使用者在側邊欄輸入 Google Gemini API Key When 執行 AI 功能 Then 僅在使用者瀏覽器 Session 中暫存",
-            "絕不儲存或上傳第三方伺服器，0 額度消耗作者個人錢包", "✅ 已通過", "待驗收確認", "", "P0", "核心成本安全"
+            "SEC-01", "BYOK 安全防護", "BYOK 費用邊界", "API 金鑰伺服器端會話資料流", "使用者需求",
+            "Given 使用者輸入 API Key When 驗證或執行 AI Then 經 Streamlit 伺服器會話記憶體，由 Python 呼叫 Google",
+            "非純前端隔離；部署日誌、代理與記憶體回收 NOT_VERIFIED；API 用量歸金鑰所屬專案", "NOT_VERIFIED（部署待查核）", "待驗收確認", "", "P0", "核心成本安全"
         ),
         (
-            "SEC-02", "BYOK 安全防護", "0 成本防護", "API 金鑰即時連線診斷", "母版特色",
+            "SEC-02", "BYOK 安全防護", "BYOK 費用邊界", "API 金鑰即時連線診斷", "母版特色",
             "Given 輸入 API Key When 系統進行驗證 Then 發送輕量 PING 測試，並給予明確的連線成功或失敗原因反饋",
             "新手能迅速得知金鑰是否有效或配額狀態", "✅ 已通過", "待驗收確認", "", "P0", "連線診斷"
         ),
